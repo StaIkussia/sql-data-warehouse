@@ -28,6 +28,8 @@ secrets/
 .dbeaver/
 .dbeaver-data-sources*.xml
 *.dbeaver-data-formats.xml
+.project
+Scripts/
 
 # =============================================================================
 # JetBrains IDEs (IntelliJ, DataGrip, PyCharm, etc.)
