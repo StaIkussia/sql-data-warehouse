@@ -1,0 +1,37 @@
+/*
+===============================================================================
+DDL Script: Create Silver Tables
+===============================================================================
+Purpose:
+    Creates cleansed (silver) tables for source systems: CRM and ERP.
+    Unlike bronze, silver tables contain standardized, deduplicated,
+    and validated data ready for downstream business logic in the gold layer.
+
+    Each silver table includes a technical column 'dwh_create_date' that
+    records when a row was loaded into the data warehouse. This is used
+    for auditing and troubleshooting load processes.
+
+    Naming convention mirrors the bronze layer:
+        <source>_<entity>    e.g. crm_cust_info, erp_cust_az12
+
+WARNING:
+    The script drops existing silver tables before recreating them.
+    Any data in these tables will be permanently lost.
+===============================================================================
+*/
+
+-- ============================================================================
+-- Source: CRM
+-- ============================================================================
+
+DROP TABLE IF EXISTS silver.crm_cust_info;
+CREATE TABLE silver.crm_cust_info(
+	cst_id INTEGER PRIMARY KEY,
+	cst_key VARCHAR(50),
+	cst_firstname VARCHAR(50),
+	cst_lastname VARCHAR(50),
+	cst_marital_status VARCHAR(50),
+	cst_gndr VARCHAR(50),
+	cst_create_date DATE,
+	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
