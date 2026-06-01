@@ -35,3 +35,17 @@ CREATE TABLE silver.crm_cust_info(
 	cst_create_date DATE,
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+DROP TABLE IF EXISTS silver.crm_prd_info;
+CREATE TABLE silver.crm_prd_info
+(
+	prd_id INTEGER PRIMARY KEY,
+	cat_id VARCHAR(50),
+	prd_key VARCHAR(50),
+	prd_nm TEXT,
+	prd_cost INTEGER,
+	prd_line VARCHAR(50),
+	prd_start_dt DATE,
+	prd_end_dt DATE,
+	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
