@@ -24,6 +24,10 @@ WARNING:
 -- Source: CRM
 -- ============================================================================
 
+-- ----------------------------------------------------------------------------
+-- silver.crm_cust_info
+-- ----------------------------------------------------------------------------
+
 DROP TABLE IF EXISTS silver.crm_cust_info;
 CREATE TABLE silver.crm_cust_info(
 	cst_id INTEGER PRIMARY KEY,
@@ -35,6 +39,10 @@ CREATE TABLE silver.crm_cust_info(
 	cst_create_date DATE,
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ----------------------------------------------------------------------------
+-- silver.crm_prd_info
+-- ----------------------------------------------------------------------------
 
 DROP TABLE IF EXISTS silver.crm_prd_info;
 CREATE TABLE silver.crm_prd_info
@@ -49,6 +57,10 @@ CREATE TABLE silver.crm_prd_info
 	prd_end_dt DATE,
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ----------------------------------------------------------------------------
+-- silver.crm_sales_details
+-- ----------------------------------------------------------------------------
 
 DROP TABLE IF EXISTS silver.crm_sales_details;
 CREATE TABLE silver.crm_sales_details
