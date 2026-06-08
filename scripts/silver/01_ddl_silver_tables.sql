@@ -77,3 +77,19 @@ CREATE TABLE silver.crm_sales_details
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (sls_ord_num, sls_prd_key)
 );
+
+-- ============================================================================
+-- Source: ERP
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- silver.erp_loc_a101
+-- ----------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS silver.erp_loc_a101;
+CREATE TABLE silver.erp_loc_a101
+(
+	cid VARCHAR(50) PRIMARY KEY,
+	cntry VARCHAR(50),
+	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
