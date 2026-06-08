@@ -49,3 +49,19 @@ CREATE TABLE silver.crm_prd_info
 	prd_end_dt DATE,
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+DROP TABLE IF EXISTS silver.crm_sales_details;
+CREATE TABLE silver.crm_sales_details
+(
+	sls_ord_num VARCHAR(50),
+	sls_prd_key VARCHAR (50),
+	sls_cust_id INTEGER NOT NULL,
+	sls_order_dt DATE,
+	sls_ship_dt DATE,
+	sls_due_dt DATE,
+	sls_sales NUMERIC(10,2),
+	sls_quantity INTEGER,
+	sls_price NUMERIC(10,2),
+	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (sls_ord_num, sls_prd_key)
+);
