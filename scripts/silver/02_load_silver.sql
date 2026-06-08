@@ -73,6 +73,24 @@ FROM (
 ) AS dedup
 WHERE rn = 1;
 
+/*
+-------------------------------------------------------------------------------
+silver.crm_prd_info
+-------------------------------------------------------------------------------
+Source:           bronze.crm_prd_info
+Transformations:
+	- Extract cat_id from prd_key (positions 1-5) and replace '-' with '_'
+	for compatibility with erp_px_cat_g1v2.id
+	- Trim prd_key to start from position 7 (sales_details key format) 
+	e.g.  CO-RF-FR-R92B-58 -> cat_id = CO_RF, prd_key = R92B-58
+	- prd_cost: pass through as-is (NULLs are preserved as "cost unknown")
+    - Standardize prd_line: trim whitespace, then map codes:
+    M -> Mountain, R -> Road, S -> Other Sales, T -> Touring, * -> Unknown
+    - Recalculate prd_end_dt as the day before the next version's start date
+	using LEAD() over prd_key partition (original prd_end_dt discarded as unreliable)
+-------------------------------------------------------------------------------
+*/
+
 TRUNCATE TABLE silver.crm_prd_info;
 INSERT INTO silver.crm_prd_info (
     prd_id, cat_id, prd_key, prd_nm, prd_cost,
@@ -95,3 +113,69 @@ SELECT
     LEAD(prd_start_dt) 
     OVER(PARTITION BY prd_key ORDER BY prd_start_dt) - INTERVAL '1 day' AS prd_end_dt
 FROM bronze.crm_prd_info;
+
+/*
+-------------------------------------------------------------------------------
+silver.crm_sales_details
+-------------------------------------------------------------------------------
+Source:           bronze.crm_sales_details
+Transformations:
+    - Convert YYYYMMDD integer dates (order, ship, due) to DATE type;
+      invalid values (zeros, non-8-digit numbers) become NULL
+    - Recalculate sls_sales when null, non-positive, or inconsistent
+      with quantity * price
+    - Recalculate sls_price when null or non-positive,
+      derived from sales / quantity; otherwise normalize via ABS
+-------------------------------------------------------------------------------
+*/
+
+TRUNCATE TABLE silver.crm_sales_details;
+INSERT INTO silver.crm_sales_details
+(
+	sls_ord_num,
+	sls_prd_key,
+	sls_cust_id,
+	sls_order_dt,
+	sls_ship_dt,
+	sls_due_dt,
+	sls_sales,
+	sls_quantity,
+	sls_price
+)
+SELECT
+	sls_ord_num,
+	sls_prd_key,
+	sls_cust_id,
+	CASE
+		WHEN sls_order_dt = 0
+			OR LENGTH(CAST(sls_order_dt AS TEXT)) != 8
+		THEN NULL
+		ELSE TO_DATE(CAST(sls_order_dt AS TEXT), 'YYYYMMDD')
+	END AS sls_order_dt,
+	CASE
+		WHEN sls_ship_dt = 0
+			OR LENGTH(CAST(sls_ship_dt AS TEXT)) != 8
+		THEN NULL
+		ELSE TO_DATE(CAST(sls_ship_dt AS TEXT), 'YYYYMMDD')
+	END AS sls_ship_dt,
+	CASE
+		WHEN sls_due_dt = 0
+			OR LENGTH(CAST(sls_due_dt AS TEXT)) != 8
+		THEN NULL
+		ELSE TO_DATE(CAST(sls_due_dt AS TEXT), 'YYYYMMDD')
+	END AS sls_due_dt,
+	CASE
+		WHEN sls_sales IS NULL 
+			OR sls_sales <= 0
+			OR sls_sales != sls_quantity * ABS(sls_price)
+		THEN sls_quantity * ABS(sls_price)
+		ELSE sls_sales
+	END AS sls_sales,
+	sls_quantity,
+	CASE
+		WHEN sls_price IS NULL
+			OR sls_price <= 0
+		THEN ABS(sls_sales) / NULLIF(sls_quantity, 0)
+		ELSE ABS(sls_price)
+	END AS sls_price
+FROM bronze.crm_sales_details;
