@@ -93,3 +93,16 @@ CREATE TABLE silver.erp_loc_a101
 	cntry VARCHAR(50),
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ----------------------------------------------------------------------------
+-- silver.erp_cust_az12
+-- ----------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS silver.erp_cust_az12;
+CREATE TABLE silver.erp_cust_az12
+(
+	cid VARCHAR(50) PRIMARY KEY,
+	bdate DATE,
+	gen VARCHAR(50),
+	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
