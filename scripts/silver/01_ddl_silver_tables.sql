@@ -106,3 +106,17 @@ CREATE TABLE silver.erp_cust_az12
 	gen VARCHAR(50),
 	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ----------------------------------------------------------------------------
+-- silver.erp_px_cat_g1v2
+-- ----------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS silver.erp_px_cat_g1v2;
+CREATE TABLE silver.erp_px_cat_g1v2
+(
+	id VARCHAR(50) PRIMARY KEY,
+	cat TEXT,
+	subcat TEXT,
+	maintenance BOOLEAN,
+	dwh_create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
