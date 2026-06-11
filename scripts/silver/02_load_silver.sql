@@ -263,3 +263,34 @@ FROM (
 SELECT * FROM bronze.erp_cust_az12
 WHERE bdate IS NULL
 OR (bdate < CURRENT_DATE AND bdate > '1900-01-01'));
+
+/*
+-------------------------------------------------------------------------------
+silver.erp_px_cat_g1v2
+-------------------------------------------------------------------------------
+Source:           bronze.erp_px_cat_g1v2
+Transformations:
+	- Convert maintenance type into Boolean
+Notes:
+	- Category 'CO_PD' has no matching products in silver.crm_prd_info.
+	Retained as a valid lookup value for future use.
+-------------------------------------------------------------------------------
+*/
+
+TRUNCATE TABLE silver.erp_px_cat_g1v2;
+INSERT INTO silver.erp_px_cat_g1v2
+(
+	id,
+	cat,
+	subcat,
+	maintenance
+)
+SELECT
+	id,
+	cat,
+	subcat,
+	CASE
+		WHEN UPPER(TRIM(maintenance)) = 'YES' THEN TRUE
+		ELSE FALSE
+	END AS maintenance
+FROM bronze.erp_px_cat_g1v2;
