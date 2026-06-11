@@ -3,20 +3,20 @@
 ETL Script: Load Silver Layer
 ===============================================================================
 Purpose:
-    Populates silver tables from bronze sources, applying cleansing,
-    deduplication, and standardization logic.
+	Populates silver tables from bronze sources, applying cleansing,
+	deduplication, and standardization logic.
 
-    Each transformation block is documented inline above its INSERT
-    statement, describing the source, target, and applied rules.
+	Each transformation block is documented inline above its INSERT
+	statement, describing the source, target, and applied rules.
 
 Process:
-    For each silver table:
-        1. TRUNCATE target table
-        2. INSERT transformed data from corresponding bronze table
+	For each silver table:
+	1. TRUNCATE target table
+	2. INSERT transformed data from corresponding bronze table
 
 WARNING:
-    The script truncates silver tables before loading.
-    All existing data in silver tables will be permanently lost.
+	The script truncates silver tables before loading.
+	All existing data in silver tables will be permanently lost.
 ===============================================================================
 */
 
@@ -30,11 +30,11 @@ silver.crm_cust_info
 -------------------------------------------------------------------------------
 Source:           bronze.crm_cust_info
 Transformations:
-    - Filter out rows where cst_id or cst_key is NULL
-    - Deduplicate by cst_id, keeping the most recent cst_create_date
-    - Trim whitespace from cst_firstname and cst_lastname
-    - Standardize cst_marital_status: M -> Married, S -> Single, * -> Unknown
-    - Standardize cst_gndr: M -> Male, F -> Female, * -> Unknown
+	- Filter out rows where cst_id or cst_key is NULL
+	- Deduplicate by cst_id, keeping the most recent cst_create_date
+	- Trim whitespace from cst_firstname and cst_lastname
+	- Standardize cst_marital_status: M -> Married, S -> Single, * -> Unknown
+	- Standardize cst_gndr: M -> Male, F -> Female, * -> Unknown
 -------------------------------------------------------------------------------
 */
 
@@ -84,9 +84,9 @@ Transformations:
 	- Trim prd_key to start from position 7 (sales_details key format) 
 	e.g.  CO-RF-FR-R92B-58 -> cat_id = CO_RF, prd_key = R92B-58
 	- prd_cost: pass through as-is (NULLs are preserved as "cost unknown")
-    - Standardize prd_line: trim whitespace, then map codes:
-    M -> Mountain, R -> Road, S -> Other Sales, T -> Touring, * -> Unknown
-    - Recalculate prd_end_dt as the day before the next version's start date
+	- Standardize prd_line: trim whitespace, then map codes:
+	M -> Mountain, R -> Road, S -> Other Sales, T -> Touring, * -> Unknown
+	- Recalculate prd_end_dt as the day before the next version's start date
 	using LEAD() over prd_key partition (original prd_end_dt discarded as unreliable)
 -------------------------------------------------------------------------------
 */
@@ -120,12 +120,12 @@ silver.crm_sales_details
 -------------------------------------------------------------------------------
 Source:           bronze.crm_sales_details
 Transformations:
-    - Convert YYYYMMDD integer dates (order, ship, due) to DATE type;
-      invalid values (zeros, non-8-digit numbers) become NULL
-    - Recalculate sls_sales when null, non-positive, or inconsistent
-      with quantity * price
-    - Recalculate sls_price when null or non-positive,
-      derived from sales / quantity; otherwise normalize via ABS
+	- Convert YYYYMMDD integer dates (order, ship, due) to DATE type;
+	invalid values (zeros, non-8-digit numbers) become NULL
+	- Recalculate sls_sales when null, non-positive, or inconsistent
+	with quantity * price
+	- Recalculate sls_price when null or non-positive,
+	derived from sales / quantity; otherwise normalize via ABS
 -------------------------------------------------------------------------------
 */
 
@@ -188,15 +188,15 @@ FROM bronze.crm_sales_details;
 -------------------------------------------------------------------------------
 silver.erp_loc_a101
 -------------------------------------------------------------------------------
-Source:           bronze.erp_loc_a101
+Source:		bronze.erp_loc_a101
 Transformations:
-    - Remove '-' for compatibility with crm_cust_info.cst_key
-    e.g. AW-00011000 -> AW00011000
-    - Standardize cntry:
-    NULL or whitespace-only -> 'Unknown'
-    'US', 'USA' -> 'United States'
-    'DE' -> 'Germany'
-    other values -> trimmed as-is
+	- Remove '-' for compatibility with crm_cust_info.cst_key
+	e.g. AW-00011000 -> AW00011000
+	- Standardize cntry:
+	NULL or whitespace-only -> 'Unknown'
+	'US', 'USA' -> 'United States'
+	'DE' -> 'Germany'
+	other values -> trimmed as-is
 Notes:
 	- No non-existent customers (orphans) records found 
 	(all cid values match crm_cust_info.cst_key after normalization).
@@ -218,3 +218,48 @@ SELECT
 		ELSE TRIM(cntry)
 	END AS cntry
 FROM bronze.erp_loc_a101;
+
+/*
+-------------------------------------------------------------------------------
+silver.erp_cust_az12
+-------------------------------------------------------------------------------
+Source:           bronze.erp_cust_az12
+Transformations:
+	- Remove 'NAS' prefix from cid for compatibility with crm_cust_info.cst_key
+	e.g. NASAW00011000 -> AW00011000
+	- Filter out rows where bdate < 1900-01-01 or bdate > today;
+	rows with NULL bdate are retained (date unknown, not invalid)
+	- Standardize gen:
+	NULL or whitespace-only -> 'Unknown'
+	'M', 'Male' (any case) -> 'Male'
+	'F', 'Female' (any case) -> 'Female'
+	Other values -> 'Unknown
+Notes:
+	- NULL values in bdate are retained as NULL ("date of birth unknown").
+	- No orphan records found (all cid values match crm_cust_info.cst_key
+	after NAS prefix removal).
+-------------------------------------------------------------------------------
+*/
+
+TRUNCATE TABLE silver.erp_cust_az12;
+INSERT INTO silver.erp_cust_az12
+(
+	cid,
+	bdate,
+	gen
+)
+SELECT 
+	CASE 
+		WHEN SUBSTRING(cid FROM 1 FOR 3) = 'NAS' THEN SUBSTRING(cid FROM 4)
+		ELSE cid
+	END AS cid,
+	bdate,
+	CASE 
+		WHEN UPPER(TRIM(gen)) IN ('M','MALE') THEN 'Male'
+		WHEN UPPER(TRIM(gen)) IN ('F','FEMALE') THEN 'Female'
+		ELSE 'Unknown'
+	END AS gen
+FROM (
+SELECT * FROM bronze.erp_cust_az12
+WHERE bdate IS NULL
+OR (bdate < CURRENT_DATE AND bdate > '1900-01-01'));
